@@ -5,8 +5,11 @@ final class MovieQuizViewController: UIViewController {
   @IBOutlet private var imageView: UIImageView! // добавлено изображение
   @IBOutlet private var textLabel: UILabel! // добавлен лейбл с вопросом
   @IBOutlet private var counterLabel: UILabel! // добавлен лейбл каунтер
+
   @IBOutlet weak var noButton: UIButton! // добавил кнопку Нет
   @IBOutlet weak var yesButton: UIButton! // добавил кнопку Да
+
+
 
   private var currentQuestionIndex = 0 // начально значение текущего вопроса 0
   private var correctAnswers = 0 // начально значение каунтера текущего ответа 0
@@ -87,8 +90,10 @@ final class MovieQuizViewController: UIViewController {
     }
   }
   private func showNextQuestionOrResults() {  // добавлен метод перехода к следующему вопросу или завершения квиза
+
     noButton.isEnabled = true // включаем кнопку после смены вопроса "Нет"
     yesButton.isEnabled = true // включаем кнопку после смены вопроса "Да"
+
     if currentQuestionIndex == questions.count - 1 { // 1
       let text = "Ваш результат: \(correctAnswers)/10"
       let viewModel = QuizResultsViewModel (
@@ -126,7 +131,9 @@ final class MovieQuizViewController: UIViewController {
   }
 
   @IBAction private func noButtonClicked(_ sender: UIButton) { // добавлем логику на нажатие "Нет"
+
     noButton.isEnabled = false // до начала смены вопроса "выключаем" кнопку Нет
+
     let currentQuestion = questions[currentQuestionIndex]
     let giveAnswer = false
 
@@ -134,7 +141,9 @@ final class MovieQuizViewController: UIViewController {
   }
 
   @IBAction private func yesButtonClicked(_ sender: UIButton) { // добавлем логику на нажатие "Да"
+
     yesButton.isEnabled = false // до начала смены вопроса "выключаем" кнопку Да
+
     let currentQuestion = questions[currentQuestionIndex]
     let giveAnswer = true
 
