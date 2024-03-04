@@ -8,6 +8,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
   @IBOutlet private var counterLabel: UILabel! // добавлен лейбл каунтер
   @IBOutlet private var noButton: UIButton! // добавил кнопку Нет
   @IBOutlet private var yesButton: UIButton! // добавил кнопку Да
+  @IBOutlet private var activityIndicator: UIActivityIndicatorView! // добавил элемент загрузки
 
   // MARK: - Private Properties
   private var currentQuestionIndex = 0 // начально значение текущего вопроса 0
@@ -21,16 +22,27 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
   // MARK: - Lifecycle
   override func viewDidLoad() {
     super.viewDidLoad()
-    questionFactory = QuestionFactory()
+    imageView.layer.cornerRadius = 20
+    questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
+    statisticService = StatisticServiceImplementation()
     questionFactory?.delegate = self
     questionFactory?.requestNextQuestion()
     alertPresenter = AlertPresenter()
     alertPresenter?.view = self
     statisticService = StatisticServiceImplementation()
+    showLoadingIndicator()
+    questionFactory?.loadData()
+    activityIndicator.hidesWhenStopped = true
+    
+  }
+  // MARK: - Status bar style
+  override var preferredStatusBarStyle: UIStatusBarStyle {
+      return .lightContent
   }
   // MARK: - QuestionFactoryDelegate
 
   func didReceiveNextQuestion(question: QuizQuestion?) {
+    activityIndicator.stopAnimating()
     guard let question = question else {
       return
     }
@@ -46,7 +58,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
 
   private func convert(model: QuizQuestion) -> QuizStepViewModel {  // добавлен метод конвертации
     let questionStep = QuizStepViewModel (
-      image: UIImage(named: model.image) ?? UIImage(),
+      image: UIImage(data: model.image) ?? UIImage(),
       question: model.text,
       questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     return questionStep
@@ -74,6 +86,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
   }
   private func showNextQuestionOrResults() {  // добавлен метод перехода к следующему вопросу или завершения квиза
     changeButtonState(isEnabled: true)
+    activityIndicator.startAnimating()
     if currentQuestionIndex == questionsAmount - 1 { // 1
       var text = "Ваш результат: \(correctAnswers)/\(questionsAmount)"
       if let statisticService = statisticService {
@@ -93,6 +106,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
       currentQuestionIndex += 1
 
       questionFactory?.requestNextQuestion()
+      
     }
   }
   private func show(quiz result: QuizResultsViewModel) { // метод показывающий результаты квиза
@@ -107,6 +121,50 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
   func changeButtonState(isEnabled: Bool) {
     yesButton.isEnabled = isEnabled
     noButton.isEnabled = isEnabled
+  }
+
+  private func showLoadingIndicator() {
+    // activityIndicator.isHidden = false // говорим, что индикатор загрузки не скрыт
+    activityIndicator.startAnimating() // включаем анимацию
+  }
+
+  private func showNetworkError(message: String) {
+    showLoadingIndicator() // скрываем индикатор загрузки
+    let model = AlertModel(
+      title: "Ошибка",
+      message: message,
+      buttonText: "Попробовать еще раз") { [weak self] in guard let self = self else { return }
+
+        self.currentQuestionIndex = 0
+        self.correctAnswers = 0
+
+        self.questionFactory?.loadData()
+      }
+
+    alertPresenter?.show(model: model)
+
+  }
+
+  func didFailToLoadData(with error: String) {
+    showNetworkError(message: error) // возьмём в качестве сообщения описание ошибки
+  }
+
+  func didFailToLoadImage() {
+    let model = AlertModel(
+      title: "Ошибка",
+      message: "Alex will become an senior ios developer!",
+      buttonText: "Попробовать еще раз") { [weak self] in 
+        self?.questionFactory?.requestNextQuestion()
+      }
+
+    alertPresenter?.show(model: model)
+  }
+
+  func didLoadDataFromServer() {
+    activityIndicator.stopAnimating() // останаливаем анимацию индикатора загрузки
+    //  activityIndicator.isHidden = true // скрываем индикатор загрузки
+    
+    questionFactory?.requestNextQuestion()
   }
 
   @IBAction private func noButtonClicked(_ sender: UIButton) { // добавлем логику на нажатие "Нет"
